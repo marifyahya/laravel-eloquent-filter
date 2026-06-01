@@ -70,6 +70,7 @@ $posts = Post::filter($request->all(), [
     'filterable' => ['status', 'category_id'],
     'sortable' => ['title', 'views', 'created_at'],
     'date_ranges' => ['created_at'],
+    'normalize_keys' => true,
 ])->paginate(15);
 ```
 
@@ -122,6 +123,23 @@ Date ranges are enabled only for fields listed in `dateRangeFields` or the `date
 
 ```http
 GET /posts?created_at_from=2024-01-01&created_at_to=2024-12-31
+```
+
+### Camel Case Request Keys
+
+Enable `normalize_keys` when your API receives camelCase request keys from a frontend client. Request keys are normalized to snake_case before filtering.
+
+```php
+Post::filter($request->all(), [
+    'normalize_keys' => true,
+    'filterable' => ['category_id'],
+    'sortable' => ['created_at'],
+    'date_ranges' => ['created_at'],
+]);
+```
+
+```http
+GET /posts?categoryId=2&createdAtFrom=2024-01-01&createdAtTo=2024-12-31&sortBy=created_at&sortDir=desc
 ```
 
 ### Sorting

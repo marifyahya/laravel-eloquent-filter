@@ -86,6 +86,42 @@ class EloquentFilterBuilderTest extends TestCase
     }
 
     #[Test]
+    public function it_can_normalize_camel_case_filter_keys()
+    {
+        Post::create(['title' => 'Old Post', 'content' => 'lorem', 'status' => 'published', 'views' => 10, 'created_at' => '2023-01-01']);
+        Post::create(['title' => 'New Post', 'content' => 'ipsum', 'status' => 'draft', 'views' => 5, 'created_at' => '2024-06-01']);
+
+        $result = Post::filter([
+            'createdAtFrom' => '2024-01-01',
+            'createdAtTo' => '2024-12-31',
+            'sortBy' => 'created_at',
+            'sortDir' => 'DESC',
+        ], [
+            'normalize_keys' => true,
+        ])->get();
+
+        $this->assertCount(1, $result);
+        $this->assertEquals('New Post', $result->first()->title);
+    }
+
+    #[Test]
+    public function it_can_normalize_camel_case_filterable_map_aliases()
+    {
+        Post::create(['title' => 'First Post', 'content' => 'x', 'status' => 'published', 'views' => 1, 'user_id' => 10, 'created_at' => '2024-01-01']);
+        Post::create(['title' => 'Second Post', 'content' => 'y', 'status' => 'published', 'views' => 2, 'user_id' => 20, 'created_at' => '2024-01-02']);
+
+        $result = Post::filter(['userId' => 20], [
+            'normalize_keys' => true,
+            'filterable_map' => [
+                'user_id' => 'user_id',
+            ],
+        ])->get();
+
+        $this->assertCount(1, $result);
+        $this->assertEquals('Second Post', $result->first()->title);
+    }
+
+    #[Test]
     public function it_can_sort_results()
     {
         Post::create(['title' => 'AAA Post', 'content' => 'aaa', 'status' => 'published', 'views' => 10, 'created_at' => '2024-01-01']);

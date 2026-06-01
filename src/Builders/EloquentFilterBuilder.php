@@ -3,6 +3,7 @@
 namespace Marifyahya\EloquentFilter\Builders;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 
 class EloquentFilterBuilder
 {
@@ -14,8 +15,10 @@ class EloquentFilterBuilder
     public function __construct(Builder $query, array $filters, array $config = [])
     {
         $this->query = $query;
-        $this->filters = $filters;
         $this->config = $config;
+        $this->filters = !empty($config['normalize_keys'])
+            ? $this->normalizeFilterKeys($filters)
+            : $filters;
         $this->model = $query->getModel();
     }
 
@@ -88,6 +91,17 @@ class EloquentFilterBuilder
         }
 
         return $this->query;
+    }
+
+    protected function normalizeFilterKeys(array $filters): array
+    {
+        $normalized = [];
+
+        foreach ($filters as $key => $value) {
+            $normalized[Str::snake($key)] = $value;
+        }
+
+        return $normalized;
     }
 
     protected function resolveFilterableFields(array $filterable, array $filterableMap): array
