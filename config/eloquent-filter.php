@@ -1,8 +1,13 @@
 <?php
 
 return [
-    'default_search_mode' => 'partial',
-    'case_sensitive' => false,
-    'default_per_page' => 15,
-    'max_per_page' => 100,
+    /*
+    |--------------------------------------------------------------------------
+    | Laravel Eloquent Filter
+    |--------------------------------------------------------------------------
+    |
+    | The package is configured from each model or from the second argument
+    | passed to the filter() scope. No global defaults are required for now.
+    |
+    */
 ];

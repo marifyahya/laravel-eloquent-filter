@@ -18,6 +18,21 @@ GET /posts?has_comments=false
 - `has_comments=true` applies `has('comments')`.
 - `has_comments=false` applies `doesntHave('comments')`.
 
+If key normalization is enabled, camelCase relation existence keys are normalized before matching:
+
+```php
+Post::filter($request->all(), [
+    'normalize_keys' => true,
+    'relation_exists' => ['blogComments'],
+]);
+```
+
+```http
+GET /posts?hasBlogComments=true
+```
+
+This applies `has('blogComments')`.
+
 ## Relation Fields
 
 ```php
@@ -37,4 +52,3 @@ GET /posts?author.status=active
 - Nested relation filtering such as `author.company.status` is not supported yet.
 - Relation field operators such as `author.age=>30` are not supported yet.
 - Sorting by relation columns is not supported yet.
-

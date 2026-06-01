@@ -55,3 +55,4 @@ protected $normalizeFilterKeys = true;
 
 If `$sortableFields` is not set, sorting falls back to `$filterableFields`.
 
+The published config file does not define global filter behavior. Prefer model properties for reusable defaults and the second `filter()` argument for one-off query overrides.

@@ -7,6 +7,7 @@ use Marifyahya\EloquentFilter\Tests\TestCase;
 use Marifyahya\EloquentFilter\Tests\Models\User;
 use Marifyahya\EloquentFilter\Tests\Models\Post;
 use Marifyahya\EloquentFilter\Tests\Models\Product;
+use Marifyahya\EloquentFilter\Tests\Models\Comment;
 
 class EloquentFilterBuilderTest extends TestCase
 {
@@ -35,6 +36,12 @@ class EloquentFilterBuilderTest extends TestCase
             $table->integer('views')->default(0);
             $table->unsignedInteger('user_id')->nullable();
             $table->date('created_at');
+        });
+
+        \Schema::create('comments', function ($table) {
+            $table->increments('id');
+            $table->unsignedInteger('post_id');
+            $table->text('body');
         });
 
         \Schema::create('products', function ($table) {
@@ -156,6 +163,20 @@ class EloquentFilterBuilderTest extends TestCase
 
         $this->assertCount(1, $result);
         $this->assertEquals('Popular', $result->first()->title);
+    }
+
+    #[Test]
+    public function it_treats_text_starting_with_like_as_exact_value()
+    {
+        Post::create(['title' => 'Laravel Guide', 'content' => 'x', 'status' => 'published', 'views' => 1, 'created_at' => '2024-01-01']);
+        Post::create(['title' => 'likeLaravel', 'content' => 'y', 'status' => 'published', 'views' => 2, 'created_at' => '2024-01-02']);
+
+        $result = Post::filter(['title' => 'likeLaravel'], [
+            'filterable' => ['title'],
+        ])->get();
+
+        $this->assertCount(1, $result);
+        $this->assertEquals('likeLaravel', $result->first()->title);
     }
 
     #[Test]
@@ -394,6 +415,22 @@ class EloquentFilterBuilderTest extends TestCase
         $result = Post::filter(['sort_by' => 'content', 'sort_dir' => 'desc'])->get();
 
         $this->assertEquals('A Post', $result->first()->title);
+    }
+
+    #[Test]
+    public function it_can_normalize_camel_case_relation_exists_filters()
+    {
+        $postWithComment = Post::create(['title' => 'With Comment', 'content' => 'a', 'status' => 'published', 'views' => 1, 'created_at' => '2024-01-01']);
+        Post::create(['title' => 'Without Comment', 'content' => 'b', 'status' => 'published', 'views' => 2, 'created_at' => '2024-01-02']);
+        Comment::create(['post_id' => $postWithComment->id, 'body' => 'Nice post']);
+
+        $result = Post::filter(['hasBlogComments' => 'true'], [
+            'normalize_keys' => true,
+            'relation_exists' => ['blogComments'],
+        ])->get();
+
+        $this->assertCount(1, $result);
+        $this->assertEquals('With Comment', $result->first()->title);
     }
 
     #[Test]

@@ -31,4 +31,9 @@ class Post extends Model
             $query->where('status', $value);
         }
     }
+
+    public function blogComments()
+    {
+        return $this->hasMany(Comment::class, 'post_id');
+    }
 }

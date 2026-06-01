@@ -1,17 +1,17 @@
 # Laravel Eloquent Filter
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/marifyahya/laravel-eloquent-filter.svg)](https://packagist.org/packages/marifyahya/laravel-eloquent-filter)
-[![Total Downloads](https://img.shields.io/packagist/dt/marifyahya/laravel-eloquent-filter?label=installs&cacheSeconds=3600)](https://packagist.org/packages/marifyahya/laravel-eloquent-filter)
+[![Total Installs](https://img.shields.io/packagist/dt/marifyahya/laravel-eloquent-filter?label=installs&cacheSeconds=3600)](https://packagist.org/packages/marifyahya/laravel-eloquent-filter)
 [![License](https://img.shields.io/packagist/l/marifyahya/laravel-eloquent-filter.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](https://github.com/marifyahya/laravel-eloquent-filter)
 
-Elegant search and filter utilities for Laravel Eloquent models.
+Elegant, whitelisted search and filter utilities for Laravel Eloquent models.
 
 ## Requirements
 
-- PHP: ^8.2
-- Laravel components: ^11.0, ^12.0, or ^13.0
-- Database: MySQL, PostgreSQL, SQLite, or SQL Server
+- PHP `^8.2`
+- Laravel components `^11.0`, `^12.0`, or `^13.0`
+- MySQL, PostgreSQL, SQLite, or SQL Server
 
 ## Installation
 
@@ -19,16 +19,17 @@ Elegant search and filter utilities for Laravel Eloquent models.
 composer require marifyahya/laravel-eloquent-filter
 ```
 
-Optionally publish the config and request stub:
+Optionally publish the request stub:
 
 ```bash
-php artisan vendor:publish --provider="Marifyahya\EloquentFilter\EloquentFilterServiceProvider" --tag=config
 php artisan vendor:publish --provider="Marifyahya\EloquentFilter\EloquentFilterServiceProvider" --tag=request
 ```
 
-## Model Setup
+The package is configured from each model or from the second argument passed to `filter()`. No global config options are required.
 
-Add the `HasEloquentFilter` trait to your model and whitelist the fields that can be filtered, searched, sorted, or used as date ranges.
+## Quick Start
+
+Add the `HasEloquentFilter` trait and define the allowed fields on your model:
 
 ```php
 <?php
@@ -50,16 +51,12 @@ class Post extends Model
 
     protected $filterableMap = [
         'post_id' => 'id',
-        'author_name' => ['author_firstname', 'author_lastname'],
+        'q' => ['title', 'content'],
     ];
 }
 ```
 
-If `sortableFields` is not set, the package falls back to `filterableFields`.
-
-## Usage
-
-Use `filter()` in your controller before pagination or `get()`.
+Use `filter()` before `paginate()` or `get()`:
 
 ```php
 <?php
@@ -78,23 +75,7 @@ class PostController extends Controller
 }
 ```
 
-```php
-use App\Models\Post;
-
-// Auto from request()->all()
-$posts = Post::filter()->get();
-
-// With custom config
-$posts = Post::filter($request->all(), [
-    'searchable' => ['title', 'content'],
-    'filterable' => ['status', 'category_id'],
-    'sortable' => ['title', 'views', 'created_at'],
-    'date_ranges' => ['created_at'],
-    'normalize_keys' => true,
-])->paginate(15);
-```
-
-## Query Examples
+Example requests:
 
 ```http
 GET /posts?search=laravel
@@ -106,7 +87,7 @@ GET /posts?sort=-created_at
 GET /posts?sort_by=views&sort_dir=desc
 ```
 
-Combined example:
+Combined request:
 
 ```http
 GET /posts?search=laravel&status=published&views=>100&created_at_from=2024-01-01&sort=-created_at
@@ -124,40 +105,168 @@ GET /posts?search=laravel&status=published&views=>100&created_at_from=2024-01-01
 | `$customFilters` | Custom filter classes or callbacks keyed by request parameter. |
 | `$normalizeFilterKeys` | Converts camelCase request keys to snake_case before filtering. |
 
-## Filter Capabilities
+You can also pass configuration per query:
 
-### Search
+```php
+$posts = Post::filter($request->all(), [
+    'searchable' => ['title', 'content'],
+    'filterable' => ['status', 'category_id'],
+    'sortable' => ['title', 'views', 'created_at'],
+    'date_ranges' => ['created_at'],
+    'normalize_keys' => true,
+])->paginate(15);
+```
 
-Search applies a partial `LIKE` query across fields listed in `searchableFields` or the `searchable` config key.
+## Filtering Basics
+
+`filterableFields` is an allowlist. It controls which columns may be filtered with exact values, comparison operators, comma-separated values, arrays, null checks, and between checks.
+
+The request value decides the filter behavior:
+
+| Request value | Behavior |
+| --- | --- |
+| `published` | Exact match: `where('field', 'published')` |
+| `>100` | Greater than: `where('field', '>', 100)` |
+| `>=100` | Greater than or equal: `where('field', '>=', 100)` |
+| `<50` | Less than: `where('field', '<', 50)` |
+| `<=50` | Less than or equal: `where('field', '<=', 50)` |
+| `!=draft` | Not equal: `where('field', '!=', 'draft')` |
+| `active,pending` | In list: `whereIn('field', ['active', 'pending'])` |
+| `!draft,archived` | Not in list: `whereNotIn('field', ['draft', 'archived'])` |
+| `null` | Is null: `whereNull('field')` |
+| `!null` | Is not null: `whereNotNull('field')` |
+| `<>10,100` | Between: `whereBetween('field', [10, 100])` |
+
+Field-level `LIKE` filters are intentionally not part of the core syntax. Use `search` for global text search, or custom filters when a specific field should use `LIKE`.
+
+Example model:
+
+```php
+protected $filterableFields = [
+    'name',
+    'category',
+    'status',
+    'views',
+];
+```
+
+Example requests:
+
+```http
+GET /posts?status=published
+GET /posts?category=tech
+GET /posts?views=>100
+```
+
+## Search
+
+Search applies one keyword across all fields listed in `searchableFields` or the `searchable` config key.
+
+```php
+protected $searchableFields = [
+    'name',
+    'category',
+];
+```
 
 ```http
 GET /posts?search=laravel
 ```
 
-### Exact Match
+This searches both `name` and `category` using `OR`:
+
+```sql
+WHERE (
+    name LIKE '%laravel%'
+    OR category LIKE '%laravel%'
+)
+```
+
+Use `search` when one keyword should be searched across multiple fields.
+
+## Exact Match
+
+Exact match filters compare a request value directly with a whitelisted column.
 
 ```http
 GET /posts?status=published
+GET /posts?category=tech
 ```
 
-### Multiple Values
+These apply:
 
-Comma-separated values use `WHERE IN`. Prefix the value with `!` to use `WHERE NOT IN`.
+```sql
+WHERE status = 'published'
+WHERE category = 'tech'
+```
+
+Multiple exact filters are combined using `AND`:
+
+```http
+GET /posts?status=published&category=tech
+```
+
+```sql
+WHERE status = 'published'
+AND category = 'tech'
+```
+
+## Field-Level LIKE
+
+The package keeps field-level `LIKE` matching as custom behavior. This keeps the core syntax simple and lets each project decide which fields should use partial matching.
+
+Define a custom filter method on your model:
+
+```php
+class Post extends Model
+{
+    use HasEloquentFilter;
+
+    protected $filterableFields = ['name', 'category'];
+
+    public function filterName($query, $value): void
+    {
+        $query->where('name', 'LIKE', "%{$value}%");
+    }
+
+    public function filterCategory($query, $value): void
+    {
+        $query->where('category', 'LIKE', "%{$value}%");
+    }
+}
+```
+
+Then use clean request values:
+
+```http
+GET /posts?name=contoh&category=tech
+```
+
+This applies:
+
+```sql
+WHERE name LIKE '%contoh%'
+AND category LIKE '%tech%'
+```
+
+You can also use `custom_filters` callbacks when you do not want to place filter methods on the model.
+
+## Multiple Values
+
+Comma-separated values use `WHERE IN`:
 
 ```http
 GET /posts?status=active,pending,draft
-GET /posts?status=!draft,archived
 GET /posts?status[]=active&status[]=pending
 ```
 
-### NULL / NOT NULL
+Prefix the value with `!` to use `WHERE NOT IN`:
 
 ```http
-GET /posts?deleted_at=null
-GET /posts?deleted_at=!null
+GET /posts?status=!draft,archived
 ```
 
-### Operators
+## Operators
 
 ```http
 GET /posts?views=>100
@@ -166,16 +275,22 @@ GET /posts?views=>=10
 GET /posts?views=<=100
 GET /posts?views=!=0
 GET /posts?status=!=draft,archived
-GET /posts?title=likeLaravel
 ```
 
-### Between
+## NULL / NOT NULL
+
+```http
+GET /posts?deleted_at=null
+GET /posts?deleted_at=!null
+```
+
+## Between
 
 ```http
 GET /posts?views=<>10,100
 ```
 
-### Date Range
+## Date Range
 
 Date ranges are enabled only for fields listed in `dateRangeFields` or the `date_ranges` config key.
 
@@ -183,11 +298,11 @@ Date ranges are enabled only for fields listed in `dateRangeFields` or the `date
 GET /posts?created_at_from=2024-01-01&created_at_to=2024-12-31
 ```
 
-### Camel Case Request Keys
+## Camel Case Request Keys
 
 Enable key normalization when your API receives camelCase request keys from a frontend client. Request keys are normalized to snake_case before filtering.
 
-You can enable it on the model:
+Enable it on the model:
 
 ```php
 class Post extends Model
@@ -213,13 +328,31 @@ Post::filter($request->all(), [
 GET /posts?categoryId=2&createdAtFrom=2024-01-01&createdAtTo=2024-12-31&sortBy=created_at&sortDir=desc
 ```
 
-### Sorting
+The request above is normalized to:
+
+```text
+categoryId -> category_id
+createdAtFrom -> created_at_from
+createdAtTo -> created_at_to
+sortBy -> sort_by
+sortDir -> sort_dir
+```
+
+Relation existence keys are normalized too:
+
+```http
+GET /posts?hasBlogComments=true
+```
+
+```text
+hasBlogComments -> has_blog_comments
+```
+
+## Sorting
 
 Sorting is ignored unless the requested field is listed in `sortableFields` or the `sortable` config key.
 
-There are two supported sorting styles.
-
-#### `sort_by` + `sort_dir`
+### `sort_by` + `sort_dir`
 
 Use this style when your frontend has separate sort field and direction values.
 
@@ -229,14 +362,12 @@ GET /posts?sort_by=views&sort_dir=DESC
 GET /posts?sort_by=title&sort_dir=asc
 ```
 
-Rules:
-
 | Parameter | Description |
 | --- | --- |
 | `sort_by` | Column to sort by. Must be listed in `sortableFields` or `sortable`. |
 | `sort_dir` | Sort direction. Supports `asc`, `desc`, `ASC`, and `DESC`. Defaults to `asc` when invalid or missing. |
 
-#### `sort`
+### `sort`
 
 Use this style when you want compact API query parameters.
 
@@ -244,8 +375,6 @@ Use this style when you want compact API query parameters.
 GET /posts?sort=title
 GET /posts?sort=-created_at
 ```
-
-Rules:
 
 | Example | Result |
 | --- | --- |
@@ -265,7 +394,7 @@ GET /posts?sort=password
 GET /posts?sort_by=non_existing_column&sort_dir=desc
 ```
 
-### Soft Deletes
+## Soft Deletes
 
 These filters only apply to models that use Laravel's `SoftDeletes` trait.
 
@@ -273,6 +402,8 @@ These filters only apply to models that use Laravel's `SoftDeletes` trait.
 GET /posts?trashed=only
 GET /posts?trashed=with
 ```
+
+## Relation Filtering
 
 ### Relation Existence
 
@@ -285,6 +416,19 @@ Post::filter($request->all(), [
 ```http
 GET /posts?has_comments=true
 GET /posts?has_comments=false
+```
+
+If key normalization is enabled, camelCase relation existence keys also work:
+
+```php
+Post::filter($request->all(), [
+    'normalize_keys' => true,
+    'relation_exists' => ['blogComments'],
+]);
+```
+
+```http
+GET /posts?hasBlogComments=true
 ```
 
 ### Relation Fields
@@ -303,9 +447,9 @@ GET /posts?author.status=active
 
 Relation filtering is supported, but sorting by relation columns is not supported yet.
 
-### Filterable Map
+## Filter Aliases
 
-Use a map to expose public aliases without exposing internal column names. A multi-column alias searches each mapped column with `LIKE` and groups them with `OR`.
+Use `filterableMap` to expose public aliases without exposing internal column names.
 
 ```php
 class User extends Model
@@ -322,7 +466,18 @@ GET /users?name=john
 GET /users?user=10
 ```
 
-### Custom Filter Method
+A multi-column alias searches each mapped column with `LIKE` and groups them with `OR`:
+
+```sql
+WHERE (
+    firstname LIKE '%john%'
+    OR lastname LIKE '%john%'
+)
+```
+
+## Custom Filters
+
+### Model Method
 
 Model methods named `filter{Field}` take priority over the default filtering behavior.
 
@@ -347,7 +502,7 @@ class Post extends Model
 GET /posts?status=published,reviewed
 ```
 
-### Custom Filter Class
+### Filter Class
 
 ```php
 class PopularFilter
@@ -367,7 +522,7 @@ Post::filter($request->all(), [
 ]);
 ```
 
-### Custom Filter Callback
+### Callback
 
 ```php
 Post::filter($request->all(), [
@@ -382,7 +537,8 @@ Post::filter($request->all(), [
 - Only whitelist columns that are safe to expose to users.
 - Sorting is whitelisted separately from filtering.
 - Unknown filters and non-sortable sort fields are ignored.
-- Use custom filters for complex authorization-aware conditions.
+- Avoid raw SQL in custom filters unless values are safely bound.
+- Do not build filter or sort allowlists from request input.
 
 ## Testing
 

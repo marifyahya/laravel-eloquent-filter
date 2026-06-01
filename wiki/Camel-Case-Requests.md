@@ -38,6 +38,16 @@ sortBy -> sort_by
 sortDir -> sort_dir
 ```
 
+Relation existence keys are normalized too:
+
+```http
+GET /posts?hasBlogComments=true
+```
+
+```text
+hasBlogComments -> has_blog_comments
+```
+
 ## Override Model Default
 
 If the model enables normalization, a single query can disable it:
@@ -47,4 +57,3 @@ Post::filter($request->all(), [
     'normalize_keys' => false,
 ]);
 ```
-

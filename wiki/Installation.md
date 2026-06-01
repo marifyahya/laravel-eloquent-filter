@@ -8,13 +8,7 @@ composer require marifyahya/laravel-eloquent-filter
 
 Laravel should auto-discover the service provider.
 
-## Optional Publish Commands
-
-Publish the config file:
-
-```bash
-php artisan vendor:publish --provider="Marifyahya\EloquentFilter\EloquentFilterServiceProvider" --tag=config
-```
+## Optional Publish Command
 
 Publish the request stub:
 
@@ -22,9 +16,10 @@ Publish the request stub:
 php artisan vendor:publish --provider="Marifyahya\EloquentFilter\EloquentFilterServiceProvider" --tag=request
 ```
 
+The package is configured from each model or from the second argument passed to `filter()`. No global config options are required.
+
 ## Requirements
 
 - PHP `^8.2`
 - Laravel components `^11.0`, `^12.0`, or `^13.0`
 - MySQL, PostgreSQL, SQLite, or SQL Server
-

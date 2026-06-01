@@ -42,25 +42,18 @@ class EloquentFilterBuilder
             $field = $resolvedField['field'];
             $originalKey = $resolvedField['key'];
 
-            if (!array_key_exists($originalKey, $this->filters)) {
-                continue;
+            if (array_key_exists($originalKey, $this->filters)) {
+                $value = $this->filters[$originalKey];
+
+                if ($value !== null && $value !== '') {
+                    $handled = $this->applyCustomFilterMethod($originalKey, $value)
+                        || $this->applyCustomFilterClass($customFilters, $originalKey, $value);
+
+                    if (!$handled) {
+                        $this->applyFilter($field, $value);
+                    }
+                }
             }
-
-            $value = $this->filters[$originalKey];
-
-            if ($value === null || $value === '') {
-                continue;
-            }
-
-            if ($this->applyCustomFilterMethod($originalKey, $value)) {
-                continue;
-            }
-
-            if ($this->applyCustomFilterClass($customFilters, $originalKey, $value)) {
-                continue;
-            }
-
-            $this->applyFilter($field, $value);
         }
 
         foreach ($dateRanges as $field) {
@@ -234,8 +227,6 @@ class EloquentFilterBuilder
                 } elseif (is_string($value) && str_contains($value, ',')) {
                     $values = array_filter(array_map('trim', explode(',', $value)), fn($v) => $v !== '');
                     $query->orWhereIn($field, $values);
-                } elseif (is_string($value) && str_starts_with($value, 'like')) {
-                    $query->orWhere($field, 'LIKE', '%' . substr($value, 4) . '%');
                 } else {
                     $query->orWhere($field, 'LIKE', "%{$value}%");
                 }
@@ -281,7 +272,7 @@ class EloquentFilterBuilder
 
     protected function applyOperatorFilter(string $field, string $value): bool
     {
-        if (preg_match('/^(>=|<=|!=|=|>|<|like)/i', $value, $matches)) {
+        if (preg_match('/^(>=|<=|!=|=|>|<)/', $value, $matches)) {
             $operator = strtolower($matches[1]);
             $actualValue = substr($value, strlen($operator));
 
@@ -298,8 +289,6 @@ class EloquentFilterBuilder
                 } else {
                     $this->query->whereIn($field, $values);
                 }
-            } elseif ($operator === 'like') {
-                $this->query->where($field, 'LIKE', "%{$actualValue}%");
             } elseif ($operator === '=') {
                 $this->query->where($field, $actualValue);
             } else {
@@ -362,7 +351,7 @@ class EloquentFilterBuilder
         $relationKeys = $this->config['relation_exists'] ?? [];
 
         foreach ($relationKeys as $relation) {
-            $key = "has_{$relation}";
+            $key = 'has_' . Str::snake($relation);
             if (!isset($this->filters[$key])) {
                 continue;
             }
