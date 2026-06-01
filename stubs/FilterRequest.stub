@@ -1,0 +1,24 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class FilterRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'search' => ['sometimes', 'nullable', 'string'],
+            'sort' => ['sometimes', 'nullable', 'string'],
+            'sort_by' => ['sometimes', 'nullable', 'string'],
+            'sort_dir' => ['sometimes', 'nullable', 'in:asc,desc,ASC,DESC'],
+            'trashed' => ['sometimes', 'nullable', 'in:with,only'],
+        ];
+    }
+}
