@@ -1,12 +1,18 @@
 {
     "name": "marifyahya/laravel-eloquent-filter",
     "description": "Elegant search and filter library for Laravel Eloquent",
+    "type": "library",
+    "homepage": "https://github.com/marifyahya/laravel-eloquent-filter",
     "keywords": [
         "laravel",
         "eloquent",
         "filter",
         "search",
-        "query-builder"
+        "filtering",
+        "sorting",
+        "query-builder",
+        "request-filter",
+        "laravel-package"
     ],
     "license": "MIT",
     "authors": [
@@ -16,6 +22,10 @@
             "role": "Developer"
         }
     ],
+    "support": {
+        "issues": "https://github.com/marifyahya/laravel-eloquent-filter/issues",
+        "source": "https://github.com/marifyahya/laravel-eloquent-filter"
+    },
     "require": {
         "php": "^8.2",
         "illuminate/database": "^11.0|^12.0|^13.0",

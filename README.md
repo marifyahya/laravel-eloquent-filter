@@ -1,5 +1,10 @@
 # Laravel Eloquent Filter
 
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/marifyahya/laravel-eloquent-filter.svg)](https://packagist.org/packages/marifyahya/laravel-eloquent-filter)
+[![Total Downloads](https://img.shields.io/packagist/dt/marifyahya/laravel-eloquent-filter.svg)](https://packagist.org/packages/marifyahya/laravel-eloquent-filter)
+[![License](https://img.shields.io/packagist/l/marifyahya/laravel-eloquent-filter.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](https://github.com/marifyahya/laravel-eloquent-filter)
+
 Elegant search and filter utilities for Laravel Eloquent models.
 
 ## Requirements
