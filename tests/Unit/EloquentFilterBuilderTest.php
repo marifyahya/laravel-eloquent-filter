@@ -96,12 +96,26 @@ class EloquentFilterBuilderTest extends TestCase
             'createdAtTo' => '2024-12-31',
             'sortBy' => 'created_at',
             'sortDir' => 'DESC',
-        ], [
-            'normalize_keys' => true,
         ])->get();
 
         $this->assertCount(1, $result);
         $this->assertEquals('New Post', $result->first()->title);
+    }
+
+    #[Test]
+    public function it_can_disable_model_key_normalization_from_config()
+    {
+        Post::create(['title' => 'Old Post', 'content' => 'lorem', 'status' => 'published', 'views' => 10, 'created_at' => '2023-01-01']);
+        Post::create(['title' => 'New Post', 'content' => 'ipsum', 'status' => 'draft', 'views' => 5, 'created_at' => '2024-06-01']);
+
+        $result = Post::filter([
+            'createdAtFrom' => '2024-01-01',
+            'createdAtTo' => '2024-12-31',
+        ], [
+            'normalize_keys' => false,
+        ])->get();
+
+        $this->assertCount(2, $result);
     }
 
     #[Test]

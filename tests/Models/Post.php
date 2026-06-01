@@ -17,6 +17,7 @@ class Post extends Model
     protected $sortableFields = ['id', 'status', 'user_id', 'title', 'views', 'created_at'];
     protected $searchableFields = ['title', 'content'];
     protected $dateRangeFields = ['created_at'];
+    protected $normalizeFilterKeys = true;
 
     protected $filterableMap = [
         'post_id' => 'id',

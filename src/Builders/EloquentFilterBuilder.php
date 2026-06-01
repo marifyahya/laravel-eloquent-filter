@@ -16,10 +16,11 @@ class EloquentFilterBuilder
     {
         $this->query = $query;
         $this->config = $config;
-        $this->filters = !empty($config['normalize_keys'])
+        $this->model = $query->getModel();
+        $normalizeKeys = $config['normalize_keys'] ?? $this->model->getNormalizeFilterKeys();
+        $this->filters = !empty($normalizeKeys)
             ? $this->normalizeFilterKeys($filters)
             : $filters;
-        $this->model = $query->getModel();
     }
 
     public function apply(): Builder

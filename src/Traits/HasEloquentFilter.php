@@ -42,4 +42,9 @@ trait HasEloquentFilter
     {
         return $this->customFilters ?? [];
     }
+
+    public function getNormalizeFilterKeys(): bool
+    {
+        return $this->normalizeFilterKeys ?? false;
+    }
 }

@@ -46,6 +46,7 @@ class Post extends Model
     protected $sortableFields = ['id', 'title', 'status', 'created_at'];
     protected $searchableFields = ['title', 'content'];
     protected $dateRangeFields = ['created_at', 'published_at'];
+    protected $normalizeFilterKeys = true;
 
     protected $filterableMap = [
         'post_id' => 'id',
@@ -57,6 +58,25 @@ class Post extends Model
 If `sortableFields` is not set, the package falls back to `filterableFields`.
 
 ## Usage
+
+Use `filter()` in your controller before pagination or `get()`.
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Post;
+use Illuminate\Http\Request;
+
+class PostController extends Controller
+{
+    public function index(Request $request)
+    {
+        return Post::filter($request->all())->paginate(15);
+    }
+}
+```
 
 ```php
 use App\Models\Post;
@@ -74,7 +94,27 @@ $posts = Post::filter($request->all(), [
 ])->paginate(15);
 ```
 
+## Model Properties
+
+| Property | Purpose |
+| --- | --- |
+| `$filterableFields` | Columns allowed for exact, operator, comma-separated, array, and null filters. |
+| `$sortableFields` | Columns allowed for `sort` and `sort_by`. Falls back to `$filterableFields` when not set. |
+| `$searchableFields` | Columns searched by the `search` query parameter. |
+| `$dateRangeFields` | Date columns allowed for `{field}_from` and `{field}_to` filters. |
+| `$filterableMap` | Public aliases mapped to real columns or multiple columns. |
+| `$customFilters` | Custom filter classes or callbacks keyed by request parameter. |
+| `$normalizeFilterKeys` | Converts camelCase request keys to snake_case before filtering. |
+
 ## Filter Capabilities
+
+### Search
+
+Search applies a partial `LIKE` query across fields listed in `searchableFields` or the `searchable` config key.
+
+```http
+GET /posts?search=laravel
+```
 
 ### Exact Match
 
@@ -127,7 +167,20 @@ GET /posts?created_at_from=2024-01-01&created_at_to=2024-12-31
 
 ### Camel Case Request Keys
 
-Enable `normalize_keys` when your API receives camelCase request keys from a frontend client. Request keys are normalized to snake_case before filtering.
+Enable key normalization when your API receives camelCase request keys from a frontend client. Request keys are normalized to snake_case before filtering.
+
+You can enable it on the model:
+
+```php
+class Post extends Model
+{
+    use HasEloquentFilter;
+
+    protected $normalizeFilterKeys = true;
+}
+```
+
+Or enable it for a single query:
 
 ```php
 Post::filter($request->all(), [
@@ -188,6 +241,8 @@ Post::filter($request->all(), [
 ```http
 GET /posts?author.status=active
 ```
+
+Relation filtering is supported, but sorting by relation columns is not supported yet.
 
 ### Filterable Map
 
